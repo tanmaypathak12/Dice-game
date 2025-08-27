@@ -22,7 +22,7 @@
     .board {
       position: relative;
       width: 100%;
-      height: 80vh;
+      height: 70vh;
     }
     .dice {
       width: 100px;
@@ -35,24 +35,19 @@
       align-items: center;
       font-size: 60px;
       cursor: pointer;
-      transition: transform 0.3s;
+      transition: transform 0.5s;
       position: absolute;
-    }
-    .dice:active {
-      transform: scale(0.9) rotate(20deg);
     }
     #player1-dice { bottom: 20px; left: 20px; }
     #player2-dice { top: 20px; right: 20px; }
-    .toggle {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
+    .toggle, .new-game {
       padding: 10px 15px;
       background: #333;
       color: white;
       border: none;
       border-radius: 8px;
       cursor: pointer;
+      margin: 10px;
     }
     .result {
       text-align: center;
@@ -76,9 +71,10 @@
   <div class="board">
     <div id="player1-dice" class="dice">🎲</div>
     <div id="player2-dice" class="dice">🎲</div>
-  </div>  <div class="result" id="result"></div><button class="toggle" onclick="toggleDarkMode()">🌙 Dark Mode</button>
-
-  <footer>
+  </div>  <div class="result" id="result"></div>  <div style="text-align:center;">
+    <button class="toggle" onclick="toggleDarkMode()">🌙 Dark Mode</button>
+    <button class="new-game" id="newGameBtn" style="display:none;" onclick="startNewGame()">🔄 New Game</button>
+  </div>  <footer>
     Made by <strong>Tanmay Pathak</strong> · <a href="https://www.linkedin.com/in/tanmay-pathak-752b15331" target="_blank">LinkedIn</a>
   </footer>  <script>
     let darkMode = false;
@@ -86,7 +82,6 @@
     let player2Sum = 0;
     let turn = 0;
     const maxTurns = 3;
-
     const diceFaces = ["⚀","⚁","⚂","⚃","⚄","⚅"];
 
     function toggleDarkMode() {
@@ -96,6 +91,28 @@
 
     function rollNormalDice() {
       return Math.floor(Math.random() * 6) + 1;
+    }
+
+    function animateDice(diceId, val1, val2) {
+      let dice = document.getElementById(diceId);
+      dice.innerHTML = "🎲";
+      dice.style.transform = "rotate(720deg) scale(1.2)";
+      setTimeout(() => {
+        dice.style.transform = "rotate(0deg) scale(1)";
+        dice.innerHTML = diceFaces[val1-1] + " " + diceFaces[val2-1];
+      }, 600);
+    }
+
+    function opponentTurn(round=1) {
+      if (round > maxTurns) {
+        document.getElementById("result").innerHTML = "👉 Now your turn! Click your dice 3 times.";
+        return;
+      }
+      let d1 = rollNormalDice();
+      let d2 = rollNormalDice();
+      animateDice("player2-dice", d1, d2);
+      player2Sum += d1+d2;
+      setTimeout(() => opponentTurn(round+1), 1000);
     }
 
     function rollPlayer1Dice() {
@@ -115,44 +132,37 @@
       }
       animateDice("player1-dice", dice1, dice2);
       player1Sum += dice1 + dice2;
-      checkWinner();
-    }
-
-    function rollPlayer2Dice() {
-      if (turn > 0 && turn <= maxTurns) {
-        let dice1 = rollNormalDice();
-        let dice2 = rollNormalDice();
-        animateDice("player2-dice", dice1, dice2);
-        player2Sum += dice1 + dice2;
+      if (turn === maxTurns) {
+        setTimeout(checkWinner, 800);
       }
-      checkWinner();
-    }
-
-    function animateDice(diceId, val1, val2) {
-      let dice = document.getElementById(diceId);
-      dice.innerHTML = "🎲";
-      dice.style.transform = "rotate(720deg)";
-      setTimeout(() => {
-        dice.style.transform = "rotate(0deg)";
-        dice.innerHTML = diceFaces[val1-1] + " " + diceFaces[val2-1];
-      }, 500);
     }
 
     function checkWinner() {
-      if (turn === maxTurns) {
-        setTimeout(() => {
-          if (player1Sum > player2Sum) {
-            document.getElementById("result").innerHTML = `🏆 You Win! (${player1Sum} vs ${player2Sum})`;
-          } else if (player1Sum < player2Sum) {
-            document.getElementById("result").innerHTML = `😢 Opponent Wins! (${player1Sum} vs ${player2Sum})`;
-          } else {
-            document.getElementById("result").innerHTML = `🤝 It's a Draw! (${player1Sum} vs ${player2Sum})`;
-          }
-        }, 600);
+      if (player1Sum > player2Sum) {
+        document.getElementById("result").innerHTML = `🏆 You Win! (${player1Sum} vs ${player2Sum})`;
+      } else if (player1Sum < player2Sum) {
+        document.getElementById("result").innerHTML = `😢 Opponent Wins! (${player1Sum} vs ${player2Sum})`;
+      } else {
+        document.getElementById("result").innerHTML = `🤝 It's a Draw! (${player1Sum} vs ${player2Sum})`;
       }
+      document.getElementById("newGameBtn").style.display = "inline-block";
     }
 
+    function startNewGame() {
+      player1Sum = 0;
+      player2Sum = 0;
+      turn = 0;
+      document.getElementById("result").innerHTML = "";
+      document.getElementById("newGameBtn").style.display = "none";
+      document.getElementById("player1-dice").innerHTML = "🎲";
+      document.getElementById("player2-dice").innerHTML = "🎲";
+      opponentTurn();
+    }
+
+    // attach roll event for player1
     document.getElementById("player1-dice").addEventListener("click", rollPlayer1Dice);
-    document.getElementById("player2-dice").addEventListener("click", rollPlayer2Dice);
+
+    // Start game automatically with opponent's turn
+    window.onload = () => opponentTurn();
   </script></body>
 </html>
