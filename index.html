@@ -1,201 +1,219 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dice Duel Game</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      text-align: center;
       margin: 0;
-      background: #f0f0f0;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      height: 100vh;
+      background: #f4f4f9;
       transition: background 0.3s, color 0.3s;
     }
-    .dark {
-      background: #121212;
-      color: #fff;
+    body.dark {
+      background: #111;
+      color: #eee;
     }
-
-    h1 { margin: 20px; }
-
-    .board {
-      position: relative;
-      height: 80vh;
+    .dice-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 10px;
     }
-
     .dice {
-      font-size: 80px;
-      cursor: pointer;
-      transition: transform 0.5s ease;
-      display: inline-block;
+      width: 80px;
+      height: 80px;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5rem;
+      margin: 10px;
+      transition: transform 0.5s;
     }
-
-    .rolling {
-      transform: rotate(720deg) scale(1.2);
+    body.dark .dice {
+      background: #eee;
+      color: #111;
     }
-
-    .highlight {
-      border: 4px solid gold;
-      border-radius: 15px;
-      padding: 5px;
-    }
-
-    #player1 { position: absolute; bottom: 20px; left: 20px; }
-    #player2 { position: absolute; top: 20px; right: 20px; }
-
-    #darkToggle {
-      position: absolute;
-      top: 10px; left: 10px;
-      padding: 8px 12px;
+    .roll-btn {
+      padding: 10px 20px;
+      font-size: 1rem;
+      margin: 10px;
       border: none;
-      background: #444;
-      color: white;
       border-radius: 8px;
+      background: #007BFF;
+      color: #fff;
       cursor: pointer;
     }
-
-    #result { margin-top: 20px; font-size: 20px; }
+    .roll-btn:disabled {
+      background: #555;
+      cursor: not-allowed;
+    }
+    .active-turn {
+      border: 3px solid gold;
+      box-shadow: 0 0 12px gold;
+    }
+    #scores {
+      font-size: 1.2rem;
+      margin: 10px;
+      text-align: center;
+    }
+    #result {
+      font-size: 1.5rem;
+      margin: 15px;
+    }
     #newGame {
       display: none;
-      margin-top: 15px;
       padding: 10px 20px;
-      font-size: 18px;
-      cursor: pointer;
+      background: #28a745;
+      color: #fff;
+      border-radius: 8px;
       border: none;
-      border-radius: 10px;
-      background: #007bff;
-      color: white;
+      cursor: pointer;
     }
-
+    #darkToggle {
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 50%;
+      background: #444;
+      color: #fff;
+      cursor: pointer;
+    }
     footer {
-      margin-top: 40px;
-      font-size: 14px;
-    }
-    footer a {
-      color: #007bff;
-      text-decoration: none;
+      font-size: 0.8rem;
+      margin: 8px;
     }
   </style>
 </head>
 <body>
-  <h1>🎲 Dice Duel</h1>
-  <button id="darkToggle">🌙 Dark Mode</button>
-
-  <div class="board">
-    <div id="player1" class="dice">⚀</div>
-    <div id="player2" class="dice">⚀</div>
+  <!-- Opponent side (top) -->
+  <div class="dice-container" id="opponentSide">
+    <div id="opponentDice" class="dice">🎲</div>
+    <button id="opponentRoll" class="roll-btn">Opponent Roll</button>
+  </div>  <div id="scores">
+    Player 1 (You): <span id="p1Score">0</span><br>
+    Opponent: <span id="p2Score">0</span>
   </div>
-
   <div id="result"></div>
-  <button id="newGame">New Game</button>
+  <button id="newGame">New Game</button>  <!-- Player side (bottom) -->  <div class="dice-container" id="playerSide">
+    <div id="playerDice" class="dice">🎲</div>
+    <button id="playerRoll" class="roll-btn">Your Roll</button>
+  </div><button id="darkToggle">🌙</button>
 
   <footer>
-    Made by <b>Tanmay Pathak</b> — 
-    <a href="https://www.linkedin.com/in/tanmay-pathak-752b15331" target="_blank">LinkedIn</a>
-  </footer>
+    Made by Tanmay Pathak | <a href="https://www.linkedin.com/in/tanmay-pathak-752b15331" target="_blank">LinkedIn</a>
+  </footer><script>
+  const diceFaces = ["⚀","⚁","⚂","⚃","⚄","⚅"];
 
-  <script>
-    const diceFaces = ["⚀","⚁","⚂","⚃","⚄","⚅"];
-    const player1 = document.getElementById("player1");
-    const player2 = document.getElementById("player2");
-    const result = document.getElementById("result");
-    const newGameBtn = document.getElementById("newGame");
-    const darkToggle = document.getElementById("darkToggle");
-    const body = document.body;
+  let p1Score = 0, p2Score = 0;
+  let p1Rolls = 0, p2Rolls = 0;
+  let turn = "player"; // who starts first
 
-    let darkMode = false;
-    let turn = 1; // 1 = Player1, 2 = Player2
-    let round = 1;
-    let scores = { p1: 0, p2: 0 };
-    let p1Rolls = 0, p2Rolls = 0;
+  const playerDice = document.getElementById("playerDice");
+  const opponentDice = document.getElementById("opponentDice");
+  const playerRollBtn = document.getElementById("playerRoll");
+  const opponentRollBtn = document.getElementById("opponentRoll");
+  const p1ScoreEl = document.getElementById("p1Score");
+  const p2ScoreEl = document.getElementById("p2Score");
+  const resultEl = document.getElementById("result");
+  const newGameBtn = document.getElementById("newGame");
+  const darkToggle = document.getElementById("darkToggle");
 
-    function rollDice() {
-      return Math.floor(Math.random() * 6) + 1;
+  function rollDie() {
+    return Math.floor(Math.random() * 6);
+  }
+
+  function rollPlayer1() {
+    let roll;
+    if (document.body.classList.contains("dark")) {
+      if (p1Rolls < 2) roll = 5; // always ⚅
+      else roll = [5,4,3][Math.floor(Math.random()*3)];
+    } else {
+      roll = rollDie();
     }
+    return roll;
+  }
 
-    function rollPlayer1Dice() {
+  function handleRoll(player) {
+    if (player === "player" && turn !== "player") return;
+    if (player === "opponent" && turn !== "opponent") return;
+
+    let roll = (player === "player") ? rollPlayer1() : rollDie();
+    const diceEl = (player === "player") ? playerDice : opponentDice;
+    diceEl.style.transform = "rotate(720deg)";
+    setTimeout(()=>{
+      diceEl.style.transform = "rotate(0deg)";
+      diceEl.textContent = diceFaces[roll];
+    },400);
+
+    if (player === "player") {
+      p1Score += roll+1;
       p1Rolls++;
-      if (darkMode) {
-        if (p1Rolls === 1 || p1Rolls === 2) return [6,6];
-        if (p1Rolls === 3) {
-          const options = [[6,6],[6,5],[6,4]];
-          return options[Math.floor(Math.random() * options.length)];
-        }
-      }
-      return [rollDice(), rollDice()];
-    }
-
-    function rollPlayer2Dice() {
+      p1ScoreEl.textContent = p1Score;
+      turn = "opponent";
+    } else {
+      p2Score += roll+1;
       p2Rolls++;
-      return [rollDice(), rollDice()];
+      p2ScoreEl.textContent = p2Score;
+      turn = "player";
     }
 
-    function updateDice(element, values) {
-      element.classList.add("rolling");
-      setTimeout(() => {
-        element.textContent = diceFaces[values[0]-1] + diceFaces[values[1]-1];
-        element.classList.remove("rolling");
-      }, 500);
+    updateTurnHighlight();
+
+    if (p1Rolls === 3 && p2Rolls === 3) {
+      endGame();
     }
+  }
 
-    function handleTurn(element, player) {
-      if ((turn === 1 && player !== 1) || (turn === 2 && player !== 2)) return;
-      if (round > 3) return;
-
-      let values;
-      if (player === 1) {
-        values = rollPlayer1Dice();
-        scores.p1 += values[0] + values[1];
-        updateDice(player1, values);
-        turn = 2;
-      } else {
-        values = rollPlayer2Dice();
-        scores.p2 += values[0] + values[1];
-        updateDice(player2, values);
-        turn = 1;
-        round++;
-      }
-
-      checkGameEnd();
-      updateHighlights();
+  function updateTurnHighlight(){
+    if (turn === "player") {
+      playerDice.classList.add("active-turn");
+      opponentDice.classList.remove("active-turn");
+    } else {
+      opponentDice.classList.add("active-turn");
+      playerDice.classList.remove("active-turn");
     }
+  }
 
-    function checkGameEnd() {
-      if (round > 3) {
-        if (scores.p1 > scores.p2) result.textContent = "🎉 You Win!";
-        else if (scores.p2 > scores.p1) result.textContent = "😢 Opponent Wins!";
-        else result.textContent = "🤝 It's a Tie!";
-        newGameBtn.style.display = "inline-block";
-      }
-    }
+  function endGame(){
+    playerRollBtn.disabled = true;
+    opponentRollBtn.disabled = true;
+    if (p1Score > p2Score) resultEl.textContent = "🎉 You Win!";
+    else if (p1Score < p2Score) resultEl.textContent = "😢 Opponent Wins!";
+    else resultEl.textContent = "🤝 It's a Draw!";
+    newGameBtn.style.display = "block";
+  }
 
-    function updateHighlights() {
-      player1.classList.remove("highlight");
-      player2.classList.remove("highlight");
-      if (turn === 1) player1.classList.add("highlight");
-      else player2.classList.add("highlight");
-    }
+  function resetGame(){
+    p1Score = 0; p2Score = 0;
+    p1Rolls = 0; p2Rolls = 0;
+    turn = "player";
+    playerDice.textContent = "🎲";
+    opponentDice.textContent = "🎲";
+    p1ScoreEl.textContent = "0";
+    p2ScoreEl.textContent = "0";
+    resultEl.textContent = "";
+    newGameBtn.style.display = "none";
+    playerRollBtn.disabled = false;
+    opponentRollBtn.disabled = false;
+    updateTurnHighlight();
+  }
 
-    player1.addEventListener("click", () => handleTurn(player1,1));
-    player2.addEventListener("click", () => handleTurn(player2,2));
+  playerRollBtn.addEventListener("click", ()=> handleRoll("player"));
+  opponentRollBtn.addEventListener("click", ()=> handleRoll("opponent"));
+  newGameBtn.addEventListener("click", resetGame);
+  darkToggle.addEventListener("click", ()=> document.body.classList.toggle("dark"));
 
-    darkToggle.addEventListener("click", () => {
-      darkMode = !darkMode;
-      body.classList.toggle("dark");
-    });
-
-    newGameBtn.addEventListener("click", () => {
-      scores = { p1: 0, p2: 0 };
-      p1Rolls = p2Rolls = 0;
-      round = 1; turn = 1;
-      player1.textContent = "⚀";
-      player2.textContent = "⚀";
-      result.textContent = "";
-      newGameBtn.style.display = "none";
-      updateHighlights();
-    });
-
-    updateHighlights();
-  </script>
-</body>
+  updateTurnHighlight();
+</script></body>
 </html>
